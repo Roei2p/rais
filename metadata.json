@@ -1,0 +1,6 @@
+{
+  "name": "רייזאפ - RiseUp | ניהול תזרים וכסף",
+  "description": "מערכת חכמה לניהול תזרים חודשי, הוצאות קבועות ומשתנות, מעקב אשראי, יעדים וייעוץ פיננסי חכם בסגנון רייזאפ.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
