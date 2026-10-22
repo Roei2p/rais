@@ -1,522 +1,149 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
+import { useState } from 'react';
+import { CalendarClock, ChevronLeft, ChevronRight, Home as HomeIcon, ListOrdered, PiggyBank } from 'lucide-react';
+import { useAppData, exampleData, EMPTY } from './lib/store';
+import { exportCSV, monthName, newId, summarize, toISO } from './lib/money';
+import { Home } from './components/Home';
+import { Expenses } from './components/Expenses';
+import { Monthly } from './components/Monthly';
+import { Goals } from './components/Goals';
+import { AddExpense } from './components/AddExpense';
+import { Welcome, Logo } from './components/Welcome';
+import { Expense } from './types';
 
-import React, { useState, useEffect } from 'react';
-import { 
-  BankAccount, 
-  CategoryKey, 
-  InsightMessage, 
-  SavingsGoal, 
-  Transaction 
-} from './types';
-import { 
-  INITIAL_ACCOUNTS, 
-  INITIAL_MESSAGES, 
-  INITIAL_SAVINGS_GOALS, 
-  INITIAL_TRANSACTIONS 
-} from './data/initialData';
-import { calculateCashflow } from './utils/cashflow';
-import { Header } from './components/Header';
-import { CashflowHero } from './components/CashflowHero';
-import { WeeklyPaceCard } from './components/WeeklyPaceCard';
-import { VariableExpensesList } from './components/VariableExpensesList';
-import { FixedExpensesList } from './components/FixedExpensesList';
-import { AccountsBar } from './components/AccountsBar';
-import { SavingsGoals } from './components/SavingsGoals';
-import { WhatIfSimulator } from './components/WhatIfSimulator';
-import { TransactionsTable } from './components/TransactionsTable';
-import { WhatsAppAdvisor } from './components/WhatsAppAdvisor';
-import { AddTransactionModal } from './components/AddTransactionModal';
-import { AddAccountModal } from './components/AddAccountModal';
-import { 
-  MessageSquare, 
-  TrendingUp, 
-  ShieldCheck, 
-  Download, 
-  RotateCcw, 
-  Sparkles,
-  HeartHandshake
-} from 'lucide-react';
-import confetti from 'canvas-confetti';
+type Tab = 'home' | 'expenses' | 'monthly' | 'goals';
+
+const TABS: { id: Tab; label: string; Icon: typeof HomeIcon }[] = [
+  { id: 'home', label: 'ראשי', Icon: HomeIcon },
+  { id: 'expenses', label: 'הוצאות', Icon: ListOrdered },
+  { id: 'monthly', label: 'כל חודש', Icon: CalendarClock },
+  { id: 'goals', label: 'חיסכון', Icon: PiggyBank },
+];
 
 export default function App() {
-  // Load from localStorage or defaults
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem('riseup_transactions');
-    if (saved) {
-      try { return JSON.parse(saved); } catch {}
-    }
-    return INITIAL_TRANSACTIONS;
-  });
+  const [data, setData] = useAppData();
+  const [tab, setTab] = useState<Tab>('home');
+  const [month, setMonth] = useState(() => new Date());
+  const [adding, setAdding] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
-  const [accounts, setAccounts] = useState<BankAccount[]>(() => {
-    const saved = localStorage.getItem('riseup_accounts');
-    if (saved) {
-      try { return JSON.parse(saved); } catch {}
-    }
-    return INITIAL_ACCOUNTS;
-  });
+  const flash = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2600); };
 
-  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>(() => {
-    const saved = localStorage.getItem('riseup_goals');
-    if (saved) {
-      try { return JSON.parse(saved); } catch {}
-    }
-    return INITIAL_SAVINGS_GOALS;
-  });
-
-  const [messages, setMessages] = useState<InsightMessage[]>(() => {
-    const saved = localStorage.getItem('riseup_messages');
-    if (saved) {
-      try { return JSON.parse(saved); } catch {}
-    }
-    return INITIAL_MESSAGES;
-  });
-
-  const [customVariableBudget, setCustomVariableBudget] = useState<number | undefined>(() => {
-    const saved = localStorage.getItem('riseup_var_budget');
-    return saved ? parseFloat(saved) : undefined;
-  });
-
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isAddTxModalOpen, setIsAddTxModalOpen] = useState(false);
-  const [isAddAccountModalOpen, setIsAddAccountModalOpen] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [syncToast, setSyncToast] = useState<string | null>(null);
-
-  // Sync state to localStorage
-  useEffect(() => {
-    localStorage.setItem('riseup_transactions', JSON.stringify(transactions));
-  }, [transactions]);
-
-  useEffect(() => {
-    localStorage.setItem('riseup_accounts', JSON.stringify(accounts));
-  }, [accounts]);
-
-  useEffect(() => {
-    localStorage.setItem('riseup_goals', JSON.stringify(savingsGoals));
-  }, [savingsGoals]);
-
-  useEffect(() => {
-    localStorage.setItem('riseup_messages', JSON.stringify(messages));
-  }, [messages]);
-
-  useEffect(() => {
-    if (customVariableBudget) {
-      localStorage.setItem('riseup_var_budget', customVariableBudget.toString());
-    }
-  }, [customVariableBudget]);
-
-  // Calculate monthly planned savings
-  const totalMonthlySavingsTarget = savingsGoals.reduce((sum, g) => sum + g.monthlyDeposit, 0);
-
-  // Calculate live cashflow summary
-  const summary = calculateCashflow(
-    transactions,
-    currentDate,
-    customVariableBudget,
-    totalMonthlySavingsTarget
-  );
-
-  // Month Switcher
-  const handleChangeMonth = (delta: number) => {
-    const nextDate = new Date(currentDate);
-    nextDate.setMonth(nextDate.getMonth() + delta);
-    setCurrentDate(nextDate);
-  };
-
-  // Add Transaction
-  const handleAddTransaction = (newTxData: Omit<Transaction, 'id'>) => {
-    const newTx: Transaction = {
-      ...newTxData,
-      id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    };
-
-    setTransactions((prev) => [newTx, ...prev]);
-
-    // Update account balance
-    setAccounts((prev) =>
-      prev.map((acc) => {
-        if (acc.name === newTx.account) {
-          return {
-            ...acc,
-            balance:
-              newTx.type === 'income'
-                ? acc.balance + newTx.amount
-                : acc.balance - newTx.amount,
-          };
-        }
-        return acc;
-      })
+  if (!data.started) {
+    return (
+      <Welcome
+        onStart={(monthly) => setData({ ...EMPTY, started: true, monthly })}
+        onExample={() => setData(exampleData())}
+      />
     );
+  }
+
+  const sum = summarize(data, month);
+  const isThisMonth = sum.isCurrent;
+
+  const shiftMonth = (delta: number) => {
+    const d = new Date(month.getFullYear(), month.getMonth() + delta, 1);
+    const now = new Date();
+    setMonth(d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() ? now : d);
   };
 
-  // Delete Transaction
-  const handleDeleteTransaction = (id: string) => {
-    setTransactions((prev) => prev.filter((t) => t.id !== id));
+  const addExpense = (e: Omit<Expense, 'id'>) => {
+    setData((d) => ({ ...d, expenses: [{ ...e, id: newId() }, ...d.expenses] }));
+    setAdding(false);
+    flash('ההוצאה נשמרה');
   };
+  const deleteExpense = (id: string) => setData((d) => ({ ...d, expenses: d.expenses.filter((e) => e.id !== id) }));
 
-  // Add Savings Goal
-  const handleAddGoal = (goalData: Omit<SavingsGoal, 'id'>) => {
-    const newGoal: SavingsGoal = {
-      ...goalData,
-      id: `goal_${Date.now()}`,
-    };
-    setSavingsGoals((prev) => [...prev, newGoal]);
-  };
-
-  // Deposit to Goal
-  const handleDepositToGoal = (goalId: string, amount: number) => {
-    setSavingsGoals((prev) =>
-      prev.map((g) =>
-        g.id === goalId ? { ...g, currentAmount: g.currentAmount + amount } : g
-      )
-    );
-  };
-
-  // Add Account
-  const handleAddAccount = (newAcc: BankAccount) => {
-    setAccounts((prev) => [...prev, newAcc]);
-  };
-
-  // Bank Sync simulation
-  const handleSyncAccounts = () => {
-    setIsSyncing(true);
-    setTimeout(() => {
-      setIsSyncing(false);
-      setAccounts((prev) =>
-        prev.map((acc) => ({
-          ...acc,
-          lastSync: 'הרגע סונכרן בהצלחה',
-        }))
-      );
-      setSyncToast('הסנכרון מול הבנקים וחברות האשראי הושלם בהצלחה! כל התנועות מעודכנות.');
-
-      // Add a WhatsApp message from RiseUp
-      const syncMsg: InsightMessage = {
-        id: `msg_sync_${Date.now()}`,
-        sender: 'riseup',
-        text: `רעננו הרגע את הנתונים מול ${accounts.length} חשבונות וכרטיסים. התזרים שלכם מעודכן ומדויק למועד זה! 🚀`,
-        timestamp: 'הרגע',
-        type: 'morning',
-      };
-      setMessages((prev) => [...prev, syncMsg]);
-
-      setTimeout(() => setSyncToast(null), 4000);
-    }, 1200);
-  };
-
-  // AI Advisor Chat Message Send
-  const handleSendMessage = async (text: string) => {
-    const userMsg: InsightMessage = {
-      id: `msg_usr_${Date.now()}`,
-      sender: 'user',
-      text,
-      timestamp: 'הרגע',
-      type: 'user',
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
-    setIsAiLoading(true);
-
-    try {
-      const res = await fetch('/api/ai-advisor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: text,
-          cashflowData: {
-            totalIncome: summary.totalIncome,
-            fixedExpensesTotal: summary.fixedExpensesTotal,
-            variableBudget: summary.variableBudget,
-            variableSpent: summary.variableSpent,
-            remainingVariable: summary.remainingVariable,
-            daysLeftInMonth: summary.daysLeft,
-            projectedEndBalance: summary.projectedEndBalance,
-            topCategories: 'סופר ופארם, מסעדות ו-Wolt, קניות ואופנה',
-          },
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const advisorMsg: InsightMessage = {
-          id: `msg_ai_${Date.now()}`,
-          sender: 'riseup',
-          text: data.reply || 'הבנתי את השאלה שלכם! התזרים מראה שאתם במסלול מצוין.',
-          timestamp: 'הרגע',
-          type: 'tip',
-        };
-        setMessages((prev) => [...prev, advisorMsg]);
-      } else {
-        throw new Error('Advisor API response was not ok');
-      }
-    } catch (err) {
-      // Fallback response
-      const fallbackMsg: InsightMessage = {
-        id: `msg_fallback_${Date.now()}`,
-        sender: 'riseup',
-        text: `לפי התזרים שלכם לחודש זה: נשארו לכם ₪${summary.remainingVariable.toLocaleString()} להוצאות משתנות ל-${summary.daysLeft} הימים הקרובים (כ-₪${Math.round(summary.dailyAllowance).toLocaleString()} ליום).
-אם תשמרו על רף זה - תסיימו את החודש בפלוס צפוי של ₪${summary.projectedEndBalance.toLocaleString()}! כל הכבוד על המעקב והאחריות! 🌟`,
-        timestamp: 'הרגע',
-        type: 'tip',
-      };
-      setMessages((prev) => [...prev, fallbackMsg]);
-    } finally {
-      setIsAiLoading(false);
+  const reset = () => {
+    if (window.confirm('למחוק את כל הנתונים ולהתחיל מחדש? אי אפשר לבטל את זה.')) {
+      setData(EMPTY);
+      setTab('home');
     }
-  };
-
-  // Reset demo data
-  const handleResetData = () => {
-    if (window.confirm('האם לאפס את כל הנתונים לנתוני הדמו המקוריים של רייזאפ?')) {
-      localStorage.clear();
-      setTransactions(INITIAL_TRANSACTIONS);
-      setAccounts(INITIAL_ACCOUNTS);
-      setSavingsGoals(INITIAL_SAVINGS_GOALS);
-      setMessages(INITIAL_MESSAGES);
-      setCustomVariableBudget(undefined);
-      confetti({ particleCount: 30, spread: 50 });
-    }
-  };
-
-  // Export to CSV
-  const handleExportCSV = () => {
-    const headers = ['תאריך', 'עסק', 'סכום', 'סוג', 'קטגוריה', 'חשבון', 'הערות'];
-    const rows = transactions.map((t) => [
-      t.date,
-      `"${t.title.replace(/"/g, '""')}"`,
-      t.amount,
-      t.type,
-      t.category,
-      `"${t.account.replace(/"/g, '""')}"`,
-      `"${(t.notes || '').replace(/"/g, '""')}"`,
-    ]);
-
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `riseup_transactions_${currentDate.getFullYear()}_${currentDate.getMonth() + 1}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] text-[#1F2937] flex flex-col font-sans selection:bg-emerald-200 selection:text-emerald-900">
-      {/* Header */}
-      <Header
-        currentDate={currentDate}
-        onChangeMonth={handleChangeMonth}
-        onOpenAddModal={() => setIsAddTxModalOpen(true)}
-        onToggleChat={() => setIsChatOpen(!isChatOpen)}
-        isChatOpen={isChatOpen}
-        onSyncAccounts={handleSyncAccounts}
-        isSyncing={isSyncing}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-      />
-
-      {/* Sync Toast Notification */}
-      {syncToast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-emerald-800 text-white px-5 py-2.5 rounded-2xl shadow-xl text-xs font-bold flex items-center gap-2 border border-emerald-600 animate-in fade-in slide-in-from-top-4 duration-300">
-          <ShieldCheck className="w-4 h-4 text-emerald-300" />
-          <span>{syncToast}</span>
-        </div>
-      )}
-
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Tab 1: Dashboard (Main RiseUp Cashflow Experience) */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6">
-            <CashflowHero
-              summary={summary}
-              onUpdateVariableBudget={(budget) => setCustomVariableBudget(budget)}
-              onNavigateTab={(tab) => setActiveTab(tab)}
-            />
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left / Main 2 cols: Weekly Pace & Variable Breakdown */}
-              <div className="lg:col-span-2 space-y-6">
-                <WeeklyPaceCard
-                  summary={summary}
-                  onOpenAddModal={() => setIsAddTxModalOpen(true)}
-                />
-
-                <VariableExpensesList
-                  transactions={transactions}
-                  currentDate={currentDate}
-                  onOpenAddModal={() => setIsAddTxModalOpen(true)}
-                  onSelectCategory={() => setActiveTab('variable')}
-                />
-              </div>
-
-              {/* Right column: WhatsApp Advisor Preview & Bank status */}
-              <div className="space-y-6">
-                <WhatsAppAdvisor
-                  messages={messages}
-                  onSendMessage={handleSendMessage}
-                  isLoading={isAiLoading}
-                  summary={summary}
-                />
-
-                <AccountsBar
-                  accounts={accounts}
-                  onSync={handleSyncAccounts}
-                  isSyncing={isSyncing}
-                  onAddAccount={() => setIsAddAccountModalOpen(true)}
-                />
-              </div>
+    <div className="min-h-screen pb-28">
+      <header className="sticky top-0 z-30 bg-paper/90 backdrop-blur border-b border-line">
+        <div className="max-w-lg mx-auto px-4 h-16 flex items-center justify-between">
+          <Logo />
+          {(tab === 'home' || tab === 'expenses') && (
+            <div className="flex items-center">
+              <button onClick={() => shiftMonth(-1)} aria-label="חודש קודם" className="w-11 h-11 grid place-items-center rounded-full hover:bg-card">
+                <ChevronRight className="w-6 h-6" />
+              </button>
+              <span className="font-bold min-w-[104px] text-center">{monthName(month)}</span>
+              <button onClick={() => shiftMonth(1)} aria-label="חודש הבא" className="w-11 h-11 grid place-items-center rounded-full hover:bg-card">
+                <ChevronLeft className="w-6 h-6" />
+              </button>
             </div>
-          </div>
+          )}
+        </div>
+      </header>
+
+      <main className="max-w-lg mx-auto px-4 py-5">
+        {!isThisMonth && (tab === 'home' || tab === 'expenses') && (
+          <button onClick={() => setMonth(new Date())} className="w-full mb-4 py-2.5 rounded-2xl bg-coin-soft font-bold">
+            חזרה לחודש הנוכחי
+          </button>
         )}
 
-        {/* Tab 2: Variable Expenses */}
-        {activeTab === 'variable' && (
-          <div className="space-y-6">
-            <VariableExpensesList
-              transactions={transactions}
-              currentDate={currentDate}
-              onOpenAddModal={() => setIsAddTxModalOpen(true)}
-            />
-            <WeeklyPaceCard
-              summary={summary}
-              onOpenAddModal={() => setIsAddTxModalOpen(true)}
-            />
-          </div>
+        {tab === 'home' && (
+          <Home data={data} month={month} sum={sum} onAdd={() => setAdding(true)} onDelete={deleteExpense}
+            onSeeAll={() => setTab('expenses')} onSetupMonthly={() => setTab('monthly')} />
+        )}
+        {tab === 'expenses' && <Expenses data={data} month={month} onDelete={deleteExpense} />}
+        {tab === 'monthly' && <Monthly items={data.monthly} onChange={(monthly) => setData((d) => ({ ...d, monthly }))} />}
+        {tab === 'goals' && (
+          <Goals
+            goals={data.goals}
+            onAdd={(g) => setData((d) => ({ ...d, goals: [...d.goals, { ...g, id: newId(), saved: 0 }] }))}
+            onDelete={(id) => setData((d) => ({ ...d, goals: d.goals.filter((g) => g.id !== id) }))}
+            onDeposit={(id, amount) => {
+              setData((d) => {
+                const goal = d.goals.find((g) => g.id === id);
+                return {
+                  ...d,
+                  goals: d.goals.map((g) => (g.id === id ? { ...g, saved: g.saved + amount } : g)),
+                  expenses: [{ id: newId(), amount, category: 'savings', note: goal?.title, date: toISO(new Date()) }, ...d.expenses],
+                };
+              });
+              flash('ההפקדה נרשמה');
+            }}
+          />
         )}
 
-        {/* Tab 3: Fixed Expenses */}
-        {activeTab === 'fixed' && (
-          <div className="space-y-6">
-            <FixedExpensesList
-              transactions={transactions}
-              currentDate={currentDate}
-              onOpenAddModal={() => setIsAddTxModalOpen(true)}
-              onDeleteTransaction={handleDeleteTransaction}
-            />
+        <footer className="mt-10 text-center text-sm text-muted space-y-3">
+          <p>הנתונים נשמרים רק בדפדפן הזה, ולא נשלחים לשום מקום.</p>
+          <div className="flex justify-center gap-5">
+            <button onClick={() => exportCSV(data)} className="underline underline-offset-4 py-2">שמירת ההוצאות לאקסל</button>
+            <button onClick={reset} className="underline underline-offset-4 py-2 hover:text-warn">מחיקת הכל</button>
           </div>
-        )}
-
-        {/* Tab 4: Accounts and Credit Cards */}
-        {activeTab === 'accounts' && (
-          <div className="space-y-6">
-            <AccountsBar
-              accounts={accounts}
-              onSync={handleSyncAccounts}
-              isSyncing={isSyncing}
-              onAddAccount={() => setIsAddAccountModalOpen(true)}
-            />
-            <TransactionsTable
-              transactions={transactions}
-              currentDate={currentDate}
-              onDeleteTransaction={handleDeleteTransaction}
-              onOpenAddModal={() => setIsAddTxModalOpen(true)}
-            />
-          </div>
-        )}
-
-        {/* Tab 5: Savings Goals */}
-        {activeTab === 'savings' && (
-          <div className="space-y-6">
-            <SavingsGoals
-              goals={savingsGoals}
-              onAddGoal={handleAddGoal}
-              onDeposit={handleDepositToGoal}
-            />
-          </div>
-        )}
-
-        {/* Tab 6: What If Simulator */}
-        {activeTab === 'simulator' && (
-          <div className="space-y-6">
-            <WhatIfSimulator
-              summary={summary}
-              onApplyScenarioBudget={(b) => setCustomVariableBudget(b)}
-            />
-          </div>
-        )}
-
-        {/* Tab 7: All Transactions */}
-        {activeTab === 'transactions' && (
-          <div className="space-y-6">
-            <TransactionsTable
-              transactions={transactions}
-              currentDate={currentDate}
-              onDeleteTransaction={handleDeleteTransaction}
-              onOpenAddModal={() => setIsAddTxModalOpen(true)}
-            />
-          </div>
-        )}
+        </footer>
       </main>
 
-      {/* Floating WhatsApp Advisor Drawer / Modal (When opened from Header on mobile or overlay) */}
-      {isChatOpen && (
-        <WhatsAppAdvisor
-          messages={messages}
-          onSendMessage={handleSendMessage}
-          isLoading={isAiLoading}
-          onClose={() => setIsChatOpen(false)}
-          summary={summary}
-          isFloating={true}
-        />
-      )}
+      <nav className="fixed bottom-0 inset-x-0 z-40 bg-card border-t border-line pb-[env(safe-area-inset-bottom)]" aria-label="ניווט">
+        <ul className="max-w-lg mx-auto grid grid-cols-4">
+          {TABS.map(({ id, label, Icon }) => {
+            const on = tab === id;
+            return (
+              <li key={id}>
+                <button onClick={() => { setTab(id); window.scrollTo(0, 0); }} aria-current={on ? 'page' : undefined}
+                  className={`w-full h-[68px] flex flex-col items-center justify-center gap-0.5 font-semibold text-[15px] ${on ? 'text-ink' : 'text-muted'}`}>
+                  <span className={`px-4 py-1 rounded-full ${on ? 'bg-coin' : ''}`}><Icon className="w-6 h-6" /></span>
+                  {label}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
 
-      {/* Add Transaction Modal */}
-      <AddTransactionModal
-        isOpen={isAddTxModalOpen}
-        onClose={() => setIsAddTxModalOpen(false)}
-        onAddTransaction={handleAddTransaction}
-        accounts={accounts}
-        currentDate={currentDate}
-      />
+      {adding && <AddExpense onSave={addExpense} onClose={() => setAdding(false)} />}
 
-      {/* Add Account Modal */}
-      <AddAccountModal
-        isOpen={isAddAccountModalOpen}
-        onClose={() => setIsAddAccountModalOpen(false)}
-        onAddAccount={handleAddAccount}
-      />
-
-      {/* Bottom Footer with Brand & Tools */}
-      <footer className="mt-12 border-t border-gray-200/80 bg-white py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-emerald-600 flex items-center justify-center text-white text-[10px] font-black">
-              R
-            </div>
-            <span className="font-bold text-gray-800">רייזאפ RiseUp</span>
-            <span>•</span>
-            <span>לדעת איפה הכסף עומד, לחיות ברוגע ולגמור בפלוס</span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-1.5 text-gray-600 hover:text-emerald-700 transition cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>יצוא לקובץ CSV</span>
-            </button>
-            <span>•</span>
-            <button
-              onClick={handleResetData}
-              className="flex items-center gap-1.5 text-gray-400 hover:text-rose-600 transition cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>איפוס נתוני הדגמה</span>
-            </button>
-          </div>
+      {toast && (
+        <div role="status" className="fixed bottom-24 inset-x-0 z-50 flex justify-center pointer-events-none">
+          <span className="bg-ink text-white px-5 py-3 rounded-2xl font-bold shadow-lg">✓ {toast}</span>
         </div>
-      </footer>
+      )}
     </div>
   );
 }

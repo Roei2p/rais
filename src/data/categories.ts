@@ -1,116 +1,22 @@
-import { CategoryInfo, CategoryKey } from '../types';
+import { CategoryKey } from '../types';
 
-export const CATEGORIES: Record<CategoryKey, CategoryInfo> = {
-  supermarket: {
-    id: 'supermarket',
-    name: 'סופר ופארם',
-    type: 'variable',
-    emoji: '🛒',
-    color: '#059669',
-    bgColor: '#ECFDF5',
-  },
-  dining: {
-    id: 'dining',
-    name: 'מסעדות, קפה ו-Wolt',
-    type: 'variable',
-    emoji: '☕',
-    color: '#D97706',
-    bgColor: '#FFFBEB',
-  },
-  shopping: {
-    id: 'shopping',
-    name: 'קניות ואופנה',
-    type: 'variable',
-    emoji: '🛍️',
-    color: '#8B5CF6',
-    bgColor: '#F5F3FF',
-  },
-  transport: {
-    id: 'transport',
-    name: 'תחבורה ודלק',
-    type: 'variable',
-    emoji: '🚗',
-    color: '#2563EB',
-    bgColor: '#EFF6FF',
-  },
-  leisure: {
-    id: 'leisure',
-    name: 'פנאי ובילויים',
-    type: 'variable',
-    emoji: '🎉',
-    color: '#EC4899',
-    bgColor: '#FDF2F8',
-  },
-  kids: {
-    id: 'kids',
-    name: 'ילדים וחינוך',
-    type: 'fixed',
-    emoji: '👶',
-    color: '#F59E0B',
-    bgColor: '#FEF3C7',
-  },
-  health: {
-    id: 'health',
-    name: 'בריאות ורפואה',
-    type: 'variable',
-    emoji: '🩺',
-    color: '#10B981',
-    bgColor: '#D1FAE5',
-  },
-  housing: {
-    id: 'housing',
-    name: 'שכירות / משכנתא',
-    type: 'fixed',
-    emoji: '🏠',
-    color: '#475569',
-    bgColor: '#F1F5F9',
-  },
-  utilities: {
-    id: 'utilities',
-    name: 'חשבונות בית (חשמל, ארנונה)',
-    type: 'fixed',
-    emoji: '💡',
-    color: '#0284C7',
-    bgColor: '#E0F2FE',
-  },
-  subscriptions: {
-    id: 'subscriptions',
-    name: 'מנויים ותקשורת',
-    type: 'fixed',
-    emoji: '📱',
-    color: '#7C3AED',
-    bgColor: '#EDE9FE',
-  },
-  insurance: {
-    id: 'insurance',
-    name: 'ביטוחים ופנסיה',
-    type: 'fixed',
-    emoji: '🛡️',
-    color: '#0D9488',
-    bgColor: '#CCFBF1',
-  },
-  salary: {
-    id: 'salary',
-    name: 'משכורת חודשית',
-    type: 'income',
-    emoji: '💼',
-    color: '#16A34A',
-    bgColor: '#DCFCE7',
-  },
-  other_income: {
-    id: 'other_income',
-    name: 'הכנסה נוספת וקצבאות',
-    type: 'income',
-    emoji: '💵',
-    color: '#059669',
-    bgColor: '#D1FAE5',
-  },
-  other: {
-    id: 'other',
-    name: 'שונות',
-    type: 'variable',
-    emoji: '📦',
-    color: '#64748B',
-    bgColor: '#F8FAFC',
-  },
-};
+export interface Category { key: CategoryKey; name: string; emoji: string; color: string; }
+
+export const CATEGORIES: Category[] = [
+  { key: 'food', name: 'סופר', emoji: '🛒', color: '#1E6B52' },
+  { key: 'eating_out', name: 'אוכל בחוץ', emoji: '🍕', color: '#D9822B' },
+  { key: 'car', name: 'דלק ונסיעות', emoji: '⛽', color: '#2F6FB0' },
+  { key: 'kids', name: 'ילדים', emoji: '🧸', color: '#C9A227' },
+  { key: 'health', name: 'בריאות ופארם', emoji: '💊', color: '#3A9C8C' },
+  { key: 'clothes', name: 'בגדים', emoji: '👕', color: '#8A5BB8' },
+  { key: 'home', name: 'לבית', emoji: '🏠', color: '#6B7A75' },
+  { key: 'fun', name: 'בילויים', emoji: '🎉', color: '#C8507A' },
+  { key: 'gifts', name: 'מתנות', emoji: '🎁', color: '#B8563B' },
+  { key: 'savings', name: 'הפקדה לחיסכון', emoji: '🐷', color: '#16302B' },
+  { key: 'other', name: 'אחר', emoji: '📦', color: '#8C9A96' },
+];
+
+export const PICKABLE = CATEGORIES.filter((c) => c.key !== 'savings');
+
+export const categoryOf = (key: CategoryKey): Category =>
+  CATEGORIES.find((c) => c.key === key) ?? CATEGORIES[CATEGORIES.length - 1];

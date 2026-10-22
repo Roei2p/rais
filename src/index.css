@@ -1,23 +1,62 @@
 @import "tailwindcss";
 
-@layer base {
-  body {
-    font-family: 'Heebo', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  }
+@theme {
+  --color-paper: #EEF2EF;
+  --color-card: #FFFFFF;
+  --color-ink: #16302B;
+  --color-muted: #5E716C;
+  --color-line: #D9E1DD;
+  --color-pine: #1E6B52;
+  --color-pine-soft: #DCEBE4;
+  --color-coin: #F2C14E;
+  --color-coin-soft: #FCF0CF;
+  --color-warn: #B83B30;
+  --color-warn-soft: #F8E1DE;
+  --font-sans: "Assistant", system-ui, sans-serif;
+  --font-display: "Secular One", "Assistant", sans-serif;
 }
 
-/* Custom smooth scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+@layer base {
+  html { -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 18px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-coin);
+    outline-offset: 2px;
+    border-radius: 10px;
+  }
+  input, select, button { font: inherit; color: inherit; }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; }
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+
+.num { font-family: var(--font-display); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+.field {
+  width: 100%;
+  background: #fff;
+  border: 2px solid var(--color-line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  min-height: 52px;
 }
-::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
-  border-radius: 9999px;
+.field:focus { outline: none; border-color: var(--color-pine); }
+
+.btn-main {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; min-height: 56px; border-radius: 16px;
+  background: var(--color-ink); color: #fff; font-weight: 700; font-size: 19px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
-}
+.btn-main:active { transform: scale(0.99); }
+.btn-main:disabled { opacity: .4; }
+
+@keyframes sheet-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.sheet { animation: sheet-up .22s ease-out; }
+@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
