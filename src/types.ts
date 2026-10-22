@@ -21,7 +21,7 @@ export interface MonthlyItem {
 export interface Goal {
   id: string;
   title: string;
-  emoji: string;
+  icon: string;
   target: number;
   saved: number;
 }

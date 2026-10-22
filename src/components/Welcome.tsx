@@ -30,7 +30,7 @@ export function Welcome({ onStart, onExample }: { onStart: (items: MonthlyItem[]
         <p className="mt-3 text-sm font-semibold text-pine">בלי הרשמה ובלי חיבור לבנק. הכל נשמר רק בטלפון שלך.</p>
       </header>
 
-      <section className="bg-card rounded-3xl p-5 space-y-4">
+      <section className="card p-5 space-y-4">
         <label className="block">
           <span className="block font-display text-xl mb-2">כמה כסף נכנס לך בחודש?</span>
           <span className="block text-muted mb-2">נטו, אחרי מסים. אם יש שתי משכורות בבית – לחבר אותן.</span>
@@ -41,7 +41,7 @@ export function Welcome({ onStart, onExample }: { onStart: (items: MonthlyItem[]
         </label>
       </section>
 
-      <section className="bg-card rounded-3xl p-5">
+      <section className="card p-5">
         <h2 className="font-display text-xl">מה משלמים קבוע כל חודש?</h2>
         <p className="text-muted mb-3">ממלאים רק מה שרלוונטי. אפשר לשנות ולהוסיף אחר כך.</p>
         <ul className="space-y-2">
@@ -56,7 +56,7 @@ export function Welcome({ onStart, onExample }: { onStart: (items: MonthlyItem[]
       </section>
 
       <button onClick={start} className="btn-main !min-h-[64px] !text-xl" disabled={!(parseFloat(income) > 0)}>מתחילים</button>
-      <button onClick={onExample} className="w-full py-3 text-pine font-bold">רוצה קודם לראות דוגמה</button>
+      <button onClick={onExample} className="w-full py-3 text-leaf font-semibold">רוצה קודם לראות דוגמה</button>
     </div>
   );
 }
@@ -64,8 +64,8 @@ export function Welcome({ onStart, onExample }: { onStart: (items: MonthlyItem[]
 export function Logo() {
   return (
     <div className="flex items-center gap-2">
-      <span className="w-9 h-9 rounded-full bg-coin grid place-items-center num text-xl text-ink" aria-hidden>₪</span>
-      <span className="font-display text-2xl">הכסף שלי</span>
+      <span className="w-9 h-9 rounded-xl bg-pine grid place-items-center num text-lg text-coin rotate-[-6deg]" aria-hidden>₪</span>
+      <span className="text-[22px] font-extrabold tracking-tight">הכסף שלי</span>
     </div>
   );
 }

@@ -1,19 +1,21 @@
 @import "tailwindcss";
 
 @theme {
-  --color-paper: #EEF2EF;
+  --color-paper: #F1F5F2;
   --color-card: #FFFFFF;
-  --color-ink: #16302B;
-  --color-muted: #5E716C;
-  --color-line: #D9E1DD;
-  --color-pine: #1E6B52;
-  --color-pine-soft: #DCEBE4;
-  --color-coin: #F2C14E;
-  --color-coin-soft: #FCF0CF;
-  --color-warn: #B83B30;
-  --color-warn-soft: #F8E1DE;
-  --font-sans: "Assistant", system-ui, sans-serif;
-  --font-display: "Secular One", "Assistant", sans-serif;
+  --color-ink: #0F2A20;
+  --color-muted: #5B6F67;
+  --color-line: #E1E8E4;
+  --color-pine: #0F3D2E;
+  --color-leaf: #1F8A63;
+  --color-leaf-soft: #DDF2E8;
+  --color-coin: #FFC93C;
+  --color-coin-soft: #FFF3CF;
+  --color-warn: #D9472F;
+  --color-warn-soft: #FDE6E1;
+  --font-sans: "Rubik", system-ui, sans-serif;
+  --font-display: "Rubik", system-ui, sans-serif;
+  --shadow-soft: 0 1px 2px rgb(15 42 32 / 0.04), 0 6px 20px -8px rgb(15 42 32 / 0.12);
 }
 
 @layer base {
@@ -22,41 +24,53 @@
     background: var(--color-paper);
     color: var(--color-ink);
     font-family: var(--font-sans);
-    font-size: 18px;
+    font-size: 17px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
-  :focus-visible {
-    outline: 3px solid var(--color-coin);
-    outline-offset: 2px;
-    border-radius: 10px;
-  }
-  input, select, button { font: inherit; color: inherit; }
+  h1, h2, h3 { font-weight: 700; letter-spacing: -0.01em; }
+  :focus-visible { outline: 3px solid var(--color-coin); outline-offset: 2px; border-radius: 12px; }
+  input, select, button, textarea { font: inherit; color: inherit; }
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   input[type="number"] { -moz-appearance: textfield; }
 }
 
-.num { font-family: var(--font-display); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.font-display { font-weight: 700; }
+.num { font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+
+.card { background: var(--color-card); border-radius: 26px; box-shadow: var(--shadow-soft); }
 
 .field {
   width: 100%;
-  background: #fff;
-  border: 2px solid var(--color-line);
-  border-radius: 14px;
+  background: var(--color-paper);
+  border: 2px solid transparent;
+  border-radius: 16px;
   padding: 12px 14px;
-  min-height: 52px;
+  min-height: 54px;
+  font-weight: 500;
+  transition: border-color .15s, background .15s;
 }
-.field:focus { outline: none; border-color: var(--color-pine); }
+.field:focus, .field:focus-within { outline: none; border-color: var(--color-leaf); background: #fff; }
+.field::placeholder { color: #9AAAA3; font-weight: 400; }
 
 .btn-main {
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; min-height: 56px; border-radius: 16px;
-  background: var(--color-ink); color: #fff; font-weight: 700; font-size: 19px;
+  width: 100%; min-height: 56px; border-radius: 18px;
+  background: var(--color-pine); color: #fff; font-weight: 700; font-size: 18px;
+  transition: transform .1s, opacity .15s;
 }
-.btn-main:active { transform: scale(0.99); }
-.btn-main:disabled { opacity: .4; }
+.btn-main:active { transform: scale(0.98); }
+.btn-main:disabled { opacity: .35; }
 
-@keyframes sheet-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
-.sheet { animation: sheet-up .22s ease-out; }
-@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
+.icon-btn {
+  width: 42px; height: 42px; display: grid; place-items: center; border-radius: 999px;
+  color: var(--color-muted); transition: background .15s, color .15s;
+}
+.icon-btn:hover { background: var(--color-paper); color: var(--color-ink); }
+
+@keyframes sheet-up { from { transform: translateY(28px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+.sheet { animation: sheet-up .24s cubic-bezier(.2,.8,.2,1); }
+.backdrop { animation: fade .2s ease-out; }
+@media (prefers-reduced-motion: reduce) { .sheet, .backdrop { animation: none; } }

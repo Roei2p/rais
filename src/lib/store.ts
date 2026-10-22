@@ -9,7 +9,12 @@ export const EMPTY: AppData = { started: false, expenses: [], monthly: [], goals
 function load(): AppData {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...EMPTY, ...JSON.parse(raw) };
+    if (raw) {
+      const d = { ...EMPTY, ...JSON.parse(raw) } as AppData;
+      // older versions stored an emoji instead of an icon name
+      d.goals = d.goals.map((g) => ({ ...g, icon: g.icon ?? (g as unknown as { emoji?: string }).emoji ?? 'safety' }));
+      return d;
+    }
   } catch { /* storage unavailable */ }
   return EMPTY;
 }
@@ -49,8 +54,8 @@ export function exampleData(): AppData {
       { id: newId(), amount: 90, category: 'fun', note: 'סרט', date: day(18) },
     ],
     goals: [
-      { id: newId(), title: 'קופה לשעת חירום', emoji: '🛟', target: 15000, saved: 6200 },
-      { id: newId(), title: 'חופשה בקיץ', emoji: '🏖️', target: 8000, saved: 1500 },
+      { id: newId(), title: 'קופה לשעת חירום', icon: 'safety', target: 15000, saved: 6200 },
+      { id: newId(), title: 'חופשה בקיץ', icon: 'vacation', target: 8000, saved: 1500 },
     ],
   };
 }
